@@ -116,9 +116,11 @@ helpers live in `Services/`, which the tests project compiles by path
 the test build with `CS0246`. If a helper needs a service or ImGui to be exercised, that is a design
 smell: extract the decision from the effect.
 
-**T2 — Do not claim in-game verification.** No agent and no unit test can run FFXIV, render ImGui,
-or observe a sound playing. Anything that touches the game is verified by the human in-game against
-a written checklist; the automated side reports build, format, analyzer and unit-test status only.
+**T2 — Do not claim in-game verification.** No test can run FFXIV, drive the game, or observe a sound
+playing; in-game behaviour is verified by the human against a written checklist. Window *appearance*
+is the one exception — it is rendered headless and compared with a golden (`T6`), so a layout
+regression fails the gate. That still proves nothing about whether the glass refracts, whether a
+control does what its label says in the client, or whether the plugin survives a duty.
 
 **T3 — The deterministic gate for a plugin is exactly this, in this order:**
 
@@ -126,10 +128,12 @@ a written checklist; the automated side reports build, format, analyzer and unit
 dotnet build "src/<Name>/<Name>.csproj" -c Release        # warnings are errors
 dotnet run --project "src/<Name>.Tests/<Name>.Tests.csproj" --no-build
 dotnet format "src/<Name>/<Name>.csproj" --verify-no-changes
+glasswork-preview --assembly "src/<Name>.Previews/bin/Release/<Name>.Previews.dll" `
+                  --compare "src/<Name>.Previews/goldens" --warp
 ```
 
-or `powershell -File scripts/check.ps1 -Name <Name>`, which runs all three and reports structured
-results.
+or `powershell -File scripts/check.ps1 -Name <Name>`, which runs all four and reports structured
+results. The previews step is skipped only when the plugin has no previews project.
 
 **T4 — `dotnet test` does not work in the sandboxed agent environment** (the VSTest testhost cannot
 open a process handle, and Microsoft.Testing.Platform cannot open its named pipe). Run the test
@@ -137,7 +141,21 @@ project as an executable with `dotnet run --project … --no-build`. On a normal
 GitHub Actions, `dotnet test` is fine.
 
 **T5 — Always scope `dotnet format` to the project being changed.** Run from the repository root
-without a project argument it will reformat all nine released plugins.
+without a project argument it will reformat every plugin in the tree.
+
+**T6 — A plugin with a previews project keeps its goldens committed and current.** `src/<Name>.Previews`
+renders the main view headless on WARP and compares it with `goldens/<Name>.png`. When a UI change is
+intended, re-render with `--update`, **look at the image**, and commit the new golden in the same
+commit as the change. Never re-render to turn a red gate green without looking at what moved — the
+red diff is the review.
+
+This is why the template splits a window into a `Windows/` shell and a `Views/` body: the view reads
+only its state object, so it can be drawn with fixed sample data and no game. A view that reaches for
+a service or the wall clock breaks the golden's determinism (`T7`).
+
+**T7 — A view draws from its state and nothing else.** No service, no `DateTime.Now`, no file reads,
+no machine-dependent formatting inside `Views/`. Read time from `Frame.Time`, numbers from the state
+object. Anything else makes the golden differ between runs for reasons that are not the layout.
 
 ## Style
 

@@ -4,29 +4,33 @@ A compiling, format-clean, warnings-as-errors clean Dalamud plugin that already 
 `CONTRIBUTING.md`. Copy it, rename it, delete what you do not need.
 
 Verified 2026-10-28: builds with `0 Warning(s)` under `TreatWarningsAsErrors`, passes
-`dotnet format --verify-no-changes`, and its 6 unit tests pass.
+`dotnet format --verify-no-changes`, its 6 unit tests pass, and its UI golden image compares clean.
+Renaming it to a different plugin and changing one button label made the gate fail
+(`previews: mismatch`), which is the point of the golden.
 
 ## Instantiate
 
-For a plugin called `FooBar` (copy **both** projects — the tests project is a sibling, never
-nested inside the plugin folder, because the SDK's default `**/*.cs` glob would otherwise compile
-test sources into the plugin):
+For a plugin called `FooBar`, copy **three** projects. All three are siblings under `src/` — the tests
+project is never nested inside the plugin folder, because the SDK's default `**/*.cs` glob would then
+compile test sources into the plugin.
 
 ```powershell
 $Name = 'FooBar'
-Copy-Item -Recurse templates/new-plugin/PluginName      "src/$Name"
-Copy-Item -Recurse templates/new-plugin/PluginName.Tests "src/$Name.Tests"
-Remove-Item "src/$Name.Tests/bin","src/$Name.Tests/obj","src/$Name/bin","src/$Name/obj" -Recurse -ErrorAction SilentlyContinue
+Copy-Item -Recurse templates/new-plugin/PluginName         "src/$Name"
+Copy-Item -Recurse templates/new-plugin/PluginName.Tests    "src/$Name.Tests"
+Copy-Item -Recurse templates/new-plugin/PluginName.Previews  "src/$Name.Previews"
+Remove-Item "src/$Name/bin","src/$Name/obj","src/$Name.Tests/bin","src/$Name.Tests/obj","src/$Name.Previews/bin","src/$Name.Previews/obj" -Recurse -ErrorAction SilentlyContinue
 ```
 
 Then rename. Every occurrence, and nothing else:
 
 | From | To |
 | --- | --- |
-| `PluginName.csproj` | `FooBar.csproj` |
-| `PluginName.Tests.csproj` | `FooBar.Tests.csproj` |
-| `namespace PluginName`, `PluginName.Windows`, `PluginName.Services`, `PluginName.Tests` | same with `FooBar` |
+| `*.csproj` file names | `FooBar.csproj`, `FooBar.Tests.csproj`, `FooBar.Previews.csproj` |
+| `namespace PluginName`, `.Windows`, `.Services`, `.Views`, `.Tests`, `.Previews` | same with `FooBar` |
 | `<Compile Include="..\PluginName\Services\**\*.cs" …>` in the tests csproj | `..\FooBar\Services\**\*.cs` |
+| `<ProjectReference Include="..\PluginName\PluginName.csproj" />` in the previews csproj | `..\FooBar\FooBar.csproj` |
+| `<InternalsVisibleTo Include="PluginName.Previews" />` in the plugin csproj | `FooBar.Previews` |
 | `new WindowSystem("PluginName")` | `new WindowSystem("FooBar")` |
 | `"/newplugin"` (`CommandName`) | `"/foobar"` |
 | `###PluginNameMain`, `###PluginNameConfig` | `###FooBarMain`, `###FooBarConfig` |
@@ -37,8 +41,39 @@ Then rename. Every occurrence, and nothing else:
 `FooBar` becomes the **InternalName** (from `AssemblyName`) and therefore the config folder, log
 tag and plugin identity. It cannot change after release.
 
-Do **not** add the new plugin to the `$plugins` array in `build.ps1` until it is ready to publish;
-until then it is simply unlisted and CI ignores it.
+### Re-render the golden, once
+
+The committed `goldens/main.png` is a render of the template's placeholder text. Renaming changes
+that text, so the golden no longer matches:
+
+```powershell
+dotnet build src/FooBar.Previews -c Release
+glasswork-preview --assembly "src/FooBar.Previews/bin/Release/FooBar.Previews.dll" --compare "src/FooBar.Previews/goldens" --update --warp
+```
+
+Look at the PNG it writes, then commit it. From then on the golden is yours and the gate checks it.
+
+Do **not** add the new plugin to the `$plugins` list in `build.ps1` until it is ready to publish;
+until then it is simply unlisted.
+
+## Layout, and why the UI is split into a view
+
+```
+src/FooBar/
+├── Plugin.cs            entry point, services, command, host lifecycle
+├── Configuration.cs     IPluginConfiguration + Migrate
+├── Views/               draws from a state object, no service, no wall clock
+│   ├── MainView.cs
+│   └── MainViewState.cs
+├── Windows/             ImGui window shell: flags, rounding, gathers state, applies results
+│   └── MainWindow.cs
+└── Services/            Dalamud-free logic the tests compile by path
+```
+
+`MainWindow` reads the game and the config into `MainViewState`, calls `MainView`, then applies what
+came back. The view touches nothing from Dalamud. That split is not decoration: it is what lets
+`FooBar.Previews` draw the *same* view with fixed sample data, which is how a UI regression is caught
+without launching the game.
 
 ## The UI is Glasswork, and that is not optional dressing
 
@@ -49,8 +84,10 @@ in place of ImGui's controls, and a `Look` that restyles everything from one ass
 - `Plugin.cs` sets `Host.Look = Look.Eorzea()`. Other families: `Neutral`, `Liquid`, `Minimal`,
   `HighContrast`, `Retro`, `Classic`, `ClearBlue/Grey/Green/Pink`, `Aurora`, `Catppuccin`, `Nord`,
   each with a `Light` variant. `Look.FromBase16(...)` takes a scheme.
-- `Gw.Toggle/Slider/Button/Toast/BeginSection/BeginRow` keep ImGui's cursor flow and return values,
-  so a window converts one control at a time and still works at every step.
+- `Gw.Toggle/Slider/Button/Toast/BeginSection/BeginRow/BeginCard` keep ImGui's cursor flow and return
+  values, so a window converts one control at a time and still works at every step.
+- The second `Gw.BeginSection` argument is a **footer**, drawn at the bottom of the section — not a
+  subtitle. It is the right place for a hint, the wrong place for the section's title.
 - Windows use `ImGuiWindowFlags.NoBackground` + `host.DrawWindowBackground(radius, tint, isLight)`,
   with a matching `ImGuiStyleVar.WindowRounding` pushed in `PreDraw` and popped in `PostDraw`.
 
@@ -59,12 +96,21 @@ the `TerraFX.Interop.Windows` `Reference` is **not optional** — the glass rend
 the copy Dalamud ships, and `Private="false"` keeps that 28 MB file out of the plugin output. The
 four Glasswork assemblies add roughly 900 KB to the shipped zip.
 
-**You cannot see this without the game.** Configuration and behaviour are testable; pixels are not.
-Glasswork ships a headless renderer for exactly this —
-`dotnet tool install Glasswork.Preview --prerelease` then
-`dotnet glasswork-preview --scene widgets --out preview.png` — which is the intended way to check a
-window's appearance and, with a golden image, to catch a regression in CI. Wiring that up is worth
-doing on the first real plugin; the template does not carry a `.Previews` project yet.
+## The golden image
+
+`FooBar.Previews` builds an `IPreviewScreen` and `glasswork-preview` renders it headless on WARP —
+its own Direct3D 11 device, real ImGui, your Dalamud fonts — then compares it with
+`goldens/main.png`. `scripts/check.ps1` runs it as step 4, so a UI change that nobody meant fails the
+gate in CI, with the moved pixels highlighted in red under `artifacts/previews/`.
+
+What the golden covers: layout, spacing, typography, control states and the card panel — because the
+view draws a real `Gw.BeginCard()`. What it does not cover: the glass itself, which is the host's and
+never runs in the preview. So the golden will not catch "the pane stopped refracting", but it will
+catch "the button moved and now overlaps the label".
+
+The tool is pinned in `dotnet-tools.json`, so `dotnet tool restore` then
+`dotnet glasswork-preview …` works anywhere. If a local manifest restore is refused (Windows
+marks the file), install it globally once: `dotnet tool install --global Glasswork.Preview --prerelease`.
 
 ## What to delete
 
@@ -94,3 +140,5 @@ outside `Services/` — they cannot be compiled into the test assembly.
 - `Dispose()` unhooking every handler it subscribed, and calling `Host.Dispose()` after that.
 - The `Host.BeginFrame()` / `Host.EndFrame()` pair around `WindowSystem.Draw`.
 - The Glasswork `PackageReference`s and the `TerraFX.Interop.Windows` `Reference`.
+- The view/state split, or the previews project stops being able to draw the window.
+- `goldens/main.png`, unless you are replacing it with a deliberate re-render.

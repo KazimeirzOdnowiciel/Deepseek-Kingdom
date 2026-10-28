@@ -34,6 +34,17 @@ jobs:
           }
           "DALAMUD_HOME=$dest" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
 
+      - name: Restore the preview tool
+        run: dotnet tool restore
+
       - name: Gate every plugin
         shell: pwsh
         run: ./scripts/check-all.ps1
+
+      - name: Upload preview diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-diffs
+          path: artifacts/previews
+          if-no-files-found: warn

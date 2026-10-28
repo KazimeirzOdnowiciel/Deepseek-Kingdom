@@ -3,9 +3,9 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
-using Glasswork;
 using Glasswork.Backend;
 using Lumina.Excel.Sheets;
+using PluginName.Views;
 
 namespace PluginName.Windows;
 
@@ -14,6 +14,9 @@ public sealed class MainWindow : Window, IDisposable
     private const float Radius = 22f;
 
     private readonly Plugin plugin;
+    private readonly MainView view = new();
+    private readonly MainViewState state = new();
+    private readonly string configPath;
 
     /// <summary>
     /// <c>NoBackground</c> stops ImGui painting its own fill: the glass is the background.
@@ -30,6 +33,7 @@ public sealed class MainWindow : Window, IDisposable
         };
 
         this.plugin = plugin;
+        configPath = Plugin.PluginInterface.ConfigDirectory.FullName;
         IsOpen = plugin.Configuration.MainWindowOpen;
     }
 
@@ -80,66 +84,52 @@ public sealed class MainWindow : Window, IDisposable
         }
     }
 
+    /// <summary>
+    /// Gathers the game's state into <see cref="MainViewState"/>, draws the view, then applies
+    /// what the view reported. The view never reads the config or a service, which is what makes
+    /// it previewable.
+    /// </summary>
     private void DrawBody()
     {
+        var config = plugin.Configuration;
+
         // Records one glass callback that refracts whatever is behind the window - the game
         // and other plugins' windows included. Falls back to a flat fill when the device is
         // not ready or the GPU budget is spent, and never throws.
         plugin.Host.DrawWindowBackground(Radius, 0.5f, plugin.Host.Look.IsLight);
 
-        Gw.Heading("Plugin Name"u8);
+        state.LoggedIn = Plugin.ClientState.IsLoggedIn;
+        state.Enabled = config.Enabled;
+        state.Volume = config.Volume;
+        state.ConfigPath = configPath;
+        state.Committed = false;
+        state.SettingsRequested = false;
+        state.ProbeRequested = false;
 
-        if (Gw.BeginSection("Status"u8, "Everything here is safe to check while in a duty."u8))
+        view.Draw(state);
+
+        var changed = state.Enabled != config.Enabled || Math.Abs(state.Volume - config.Volume) > 0.0001f;
+
+        if (changed)
         {
-            Gw.BeginRow("Logged in"u8);
-            Gw.Text(Plugin.ClientState.IsLoggedIn ? "yes"u8 : "no"u8, TextRole.Body);
-            Gw.EndRow();
-
-            Gw.BeginRow("Enabled"u8, "Applies immediately"u8);
-            var enabled = plugin.Configuration.Enabled;
-            if (Gw.Toggle(ref enabled, "##enabled"u8))
-            {
-                plugin.Configuration.Enabled = enabled;
-                plugin.Configuration.Save();
-            }
-
-            Gw.EndRow();
-
-            Gw.BeginRow("Volume"u8);
-            ImGui.SetNextItemWidth(170f * Frame.Scale);
-            var volume = plugin.Configuration.Volume;
-            if (Gw.Slider(ref volume, 0f, 1f, "##volume"u8, 0.01f, "0%"))
-            {
-                plugin.Configuration.Volume = volume;
-            }
-
-            Gw.EndRow();
+            config.Enabled = state.Enabled;
+            config.Volume = state.Volume;
         }
 
-        Gw.EndSection();
-
-        if (Gw.BeginSection("Actions"u8))
+        if (changed || state.Committed)
         {
-            if (Gw.Button("Settings"u8))
-            {
-                plugin.ToggleConfigUi();
-            }
-
-            if (Gw.Button("Probe item sheet"u8, ButtonStyle.Prominent))
-            {
-                ProbeItemSheet();
-            }
+            config.Save();
         }
 
-        Gw.EndSection();
-
-        // One save per frame at most, on the frame a value control finished an edit.
-        if (Gw.Committed)
+        if (state.SettingsRequested)
         {
-            plugin.Configuration.Save();
+            plugin.ToggleConfigUi();
         }
 
-        ImGui.TextDisabled(Plugin.PluginInterface.ConfigDirectory.FullName);
+        if (state.ProbeRequested)
+        {
+            ProbeItemSheet();
+        }
     }
 
     /// <summary>

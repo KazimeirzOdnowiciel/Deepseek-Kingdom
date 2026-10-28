@@ -16,6 +16,11 @@ Second paragraph for the details a user needs before installing: what it reads, 
     <StrictConventions>true</StrictConventions>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Lets the previews project draw the internal view classes against a golden image. -->
+    <InternalsVisibleTo Include="PluginName.Previews" />
+  </ItemGroup>
+
   <!--
     Glasswork: real refracting glass behind the window and themed widgets in place of ImGui's.
     MIT, four prerelease packages, API 15. Ships ~900 KB of its own assemblies in the plugin zip.

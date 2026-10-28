@@ -20,7 +20,7 @@ serves until the first plugin is promoted.
 | --- | --- |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | The rulebook. Every rule has an id (`N4`, `A2`, `T1`, `P4`) so a review finding cites one instead of paraphrasing. |
 | [`AI-USAGE.md`](AI-USAGE.md) | The declared AI level (Copilot), the five human gates, and the limits. |
-| [`templates/new-plugin/`](templates/new-plugin/TEMPLATE.md) | A compiling plugin plus its unit-test project, already conforming to the rulebook. |
+| [`templates/new-plugin/`](templates/new-plugin/TEMPLATE.md) | A compiling plugin, its unit-test project and its preview (golden-image) project, already conforming to the rulebook. |
 | [`scripts/check.ps1`](scripts/check.ps1) | The gate for one plugin: build, tests, format. JSON on the last line. |
 | [`scripts/check-all.ps1`](scripts/check-all.ps1) | The same gate over every plugin in `src/`. What CI runs. |
 | [`build.ps1`](build.ps1) | Packages every listed plugin into `dist/` and rewrites `repo.json`. |
@@ -48,13 +48,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check.ps1 -Name Fo
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-all.ps1
 ```
 
-The first prints `{"plugin":"FooBar","build":true,"tests":"passed","format":"clean","ok":true}` and
-exits 0 only when all three pass. The second does that for every plugin. Formatting is enforced by
+The first prints `{"plugin":"FooBar","build":true,"tests":"passed","format":"clean","previews":"passed","ok":true}`
+and exits 0 only when all four pass. The second does that for every plugin. Formatting is enforced by
 `dotnet format`, so never argue style in review — and always scope it to one project, or it will
 reformat everything in the tree.
 
-The gate proves a plugin **compiles, passes its unit tests, and is formatted**. It proves nothing
-about behaviour. In-game behaviour is the human's checklist.
+The gate proves a plugin **compiles, passes its unit tests, is formatted, and its window still renders
+the same pixels**. It proves nothing about behaviour in the client. In-game behaviour is the human's
+checklist.
 
 ## Publish it
 
@@ -77,26 +78,35 @@ user's binaries.
 A working plugin on [Glasswork](https://github.com/XeldarAlz/FFXIV-Glasswork) (MIT, API 15): real
 refracting glass behind the pane, themed `Gw` widgets instead of stock ImGui controls, a `Look` that
 restyles everything from one assignment, `IPluginConfiguration` with a `Migrate()`, a `WindowSystem`
-with stable `###` window ids, a slash command whose help enumerates its subcommands, and a
-`Services/` folder whose contents the test project compiles **by path** — so a Dalamud type in
-"pure" logic fails the test build rather than relying on a reviewer to notice.
+with stable `###` window ids, a slash command whose help enumerates its subcommands, a `Views/` body
+split from its `Windows/` shell so the preview can draw it, and a `Services/` folder whose contents the
+test project compiles **by path** — so a Dalamud type in "pure" logic fails the test build rather than
+relying on a reviewer to notice.
 
 ## Seeing the UI without the game
 
-Glasswork ships a headless renderer:
+`src/<Name>.Previews` builds an `IPreviewScreen` that draws the main view with fixed sample data.
+`glasswork-preview` renders it headless on WARP — its own Direct3D 11 device, real ImGui, your
+Dalamud fonts — and compares it with `goldens/main.png`:
 
 ```powershell
-dotnet tool install --global Glasswork.Preview --prerelease
-glasswork-preview --scene widgets --warp --out preview.png
+dotnet tool restore
+dotnet glasswork-preview --assembly "src/FooBar.Previews/bin/Release/FooBar.Previews.dll" --compare "src/FooBar.Previews/goldens" --warp
 ```
 
-It draws real ImGui on its own D3D11 device (WARP on CPU) using your Dalamud fonts, and it can diff
-against a golden image — the only UI regression test available here. A `.Previews` project per plugin
-is the next step and does not exist yet.
+`scripts/check.ps1` runs that as step 4, so a UI regression fails the gate in CI and the renders plus
+red-highlighted `.diff.png` files are uploaded as an artifact. Locally they land in
+`artifacts/previews/<Name>`.
+
+What it covers is layout, spacing, typography, control states and the card panel. What it cannot cover
+is the glass itself, which only runs in the client — so "the pane stopped refracting" will not fail
+the golden, but "the button moved onto the label" will.
 
 ## Status
 
-The template builds with **0 warnings** under `TreatWarningsAsErrors`, its **6 unit tests pass**, and
-`dotnet format --verify-no-changes` is clean. No plugin is published yet, so `repo.json` is `[]`.
+The template builds with **0 warnings** under `TreatWarningsAsErrors`, its **6 unit tests pass**,
+`dotnet format --verify-no-changes` is clean, and its golden image compares byte-identical on
+re-render. Changing one button label in the view was verified to fail the gate
+(`previews: mismatch`, exit code 1). No plugin is published yet, so `repo.json` is `[]`.
 
 Not verified, and not verifiable here: anything that needs the game running.

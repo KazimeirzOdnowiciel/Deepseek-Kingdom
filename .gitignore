@@ -3,3 +3,6 @@
 .vs/
 bin/
 obj/
+
+# Preview renders and diffs from scripts/check.ps1, kept for inspection after a failure.
+artifacts/
