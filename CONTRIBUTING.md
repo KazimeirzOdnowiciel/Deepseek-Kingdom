@@ -90,6 +90,14 @@ subscription is removed **before** `Host.Dispose()`. A glass callback recorded a
 gone faults the client. The renderer falls back to a flat fill when the device is not ready or the
 GPU budget is spent, so no code may assume glass actually rendered.
 
+Two traps this rule has already caught in real code:
+
+- `Host.EndFrame()` belongs in a `finally`. A window that throws must not leave the frame the host
+  began open forever.
+- `Window.OnOpen` and `OnClose` are invoked from `WindowSystem.Draw`, **outside** the guard around
+  `Window.Draw`. A config write there goes through `Plugin.SaveConfigSafe`, never a bare `Save()`:
+  an exception in the save aborts the whole draw pass and skips `EndFrame`.
+
 ## API level
 
 **A1 — Pin `Dalamud.NET.Sdk/15.0.0` (API 15 / .NET 10) for a new plugin today.** API 16 ships with

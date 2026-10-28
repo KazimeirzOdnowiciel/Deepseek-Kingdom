@@ -1,3 +1,4 @@
+using System;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
@@ -44,6 +45,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private readonly MainWindow mainWindow;
     private readonly ConfigWindow configWindow;
+
+    /// <summary>Set once the draw pass has failed, so it is logged on the transition and not per frame.</summary>
+    private bool loggedDrawFailure;
 
     public Plugin()
     {
@@ -105,11 +109,57 @@ public sealed class Plugin : IDalamudPlugin
     /// BeginFrame first, EndFrame last, around every window. BeginFrame releases the previous
     /// frame's captures and picks up the device, the UI scale and the reduced-motion setting.
     /// </summary>
+    /// <remarks>
+    /// EndFrame is in a finally on purpose: if a window throws, the glass frame this opened must
+    /// still be closed (N11). Logging happens on the transition only - this path runs sixty times a
+    /// second, so a per-frame Error or Debug line becomes log spam.
+    /// </remarks>
     private void OnDraw()
     {
         Host.BeginFrame();
-        WindowSystem.Draw();
-        Host.EndFrame();
+
+        try
+        {
+            WindowSystem.Draw();
+
+            if (loggedDrawFailure)
+            {
+                Log.Debug("The UI draw pass recovered.");
+                loggedDrawFailure = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            if (!loggedDrawFailure)
+            {
+                Log.Error(ex, "The UI draw pass failed.");
+                loggedDrawFailure = true;
+            }
+        }
+        finally
+        {
+            Host.EndFrame();
+        }
+    }
+
+    /// <summary>
+    /// Saves the configuration without letting a failed write escape.
+    /// </summary>
+    /// <remarks>
+    /// <c>Window.OnOpen</c> and <c>OnClose</c> are invoked from <c>WindowSystem.Draw</c>, outside the
+    /// guard around <c>Window.Draw</c>, so an exception during a save there aborts the whole draw
+    /// pass and skips <c>Host.EndFrame</c>.
+    /// </remarks>
+    internal static void SaveConfigSafe(Configuration configuration)
+    {
+        try
+        {
+            configuration.Save();
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Saving the configuration failed.");
+        }
     }
 
     private void OnCommand(string command, string args)

@@ -57,14 +57,14 @@ public sealed class MainWindow : Window, IDisposable
     public override void OnOpen()
     {
         plugin.Configuration.MainWindowOpen = true;
-        plugin.Configuration.Save();
+        Plugin.SaveConfigSafe(plugin.Configuration);
         base.OnOpen();
     }
 
     public override void OnClose()
     {
         plugin.Configuration.MainWindowOpen = false;
-        plugin.Configuration.Save();
+        Plugin.SaveConfigSafe(plugin.Configuration);
         base.OnClose();
     }
 
