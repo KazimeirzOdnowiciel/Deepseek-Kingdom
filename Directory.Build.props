@@ -1,0 +1,35 @@
+<Project>
+
+  <!--
+    Strict settings apply ONLY to projects that opt in, by setting
+
+        <StrictConventions>true</StrictConventions>
+
+    in their own .csproj. Every project created from templates/new-plugin does this.
+    The nine released plugins do not, so their builds are unchanged by this file.
+
+    The opt-in exists because retrofitting warnings-as-errors onto shipped plugins
+    would break build.ps1 and the release workflow on code nobody is touching.
+  -->
+  <PropertyGroup Condition="'$(StrictConventions)' == 'true'">
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+
+    <!--
+      CA1031 is disabled deliberately. The suite convention is that every code path
+      that touches the game fails soft: a catch-all around a packet read or an ImGui
+      Draw keeps a first-time error from taking the player's UI down mid-duty.
+      Suppressing it here is the difference between "we thought about it" and
+      "we let an agent sprinkle catch (Exception) everywhere unsupervised" - the
+      reviewer still requires a logged exception, never a silently swallowed one.
+    -->
+    <NoWarn>$(NoWarn);CA1031</NoWarn>
+  </PropertyGroup>
+
+</Project>

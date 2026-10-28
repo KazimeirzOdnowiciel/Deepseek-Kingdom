@@ -1,0 +1,77 @@
+root = true
+
+# This file is authoritative for formatting. Reviewers do not argue style in
+# review; `dotnet format --verify-no-changes` decides. It is enforced only for
+# projects that opt in to StrictConventions (see Directory.Build.props), so the
+# nine released plugins are unaffected until someone chooses to migrate one.
+
+[*]
+charset = utf-8
+# LF, enforced because "unset" is not actually a neutral choice: the Roslyn formatter falls
+# back to Environment.NewLine (CRLF here) and then demands CRLF, which makes the gate fail on
+# the LF files that tools emit. Stated explicitly, with .gitattributes pinning eol=lf so a
+# checkout reproduces exactly what the gate expects. The git index was already LF (autocrlf),
+# so this cost no history churn.
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{csproj,props,targets,xml}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# --- using directives ---
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+
+# --- formatting ---
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_around_binary_operators = before_and_after
+
+# --- braces and syntax modernisation ---
+csharp_prefer_braces = true:warning
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+csharp_style_prefer_primary_constructors = false:suggestion
+csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_prefer_readonly_struct = true:suggestion
+
+# --- nullability and explicit intent ---
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_readonly_field = true:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_prefer_is_null_check_over_reference_equality_methods = true:warning
+csharp_style_prefer_null_check_over_type_check = true:suggestion
+csharp_style_throw_expression = true:suggestion
+
+# --- style analyzers that must fail the build for strict projects ---
+dotnet_diagnostic.IDE0005.severity = warning   # unnecessary using directive
+dotnet_diagnostic.IDE0040.severity = warning   # missing accessibility modifier
+dotnet_diagnostic.IDE0065.severity = warning   # using directive placement
+dotnet_diagnostic.IDE0161.severity = warning   # file-scoped namespace
+dotnet_diagnostic.IDE0055.severity = warning   # formatting

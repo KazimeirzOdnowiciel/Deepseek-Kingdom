@@ -1,0 +1,18 @@
+# Line endings. The git index is already LF (core.autocrlf=true normalises on add), so this
+# file changes what the working tree looks like, not what is stored.
+#
+# .editorconfig enforces end_of_line = lf and `dotnet format` fails the build on a mismatch,
+# so the working tree must actually be LF or a fresh clone would fail its own gate.
+* text=auto
+*.cs text eol=lf
+*.csproj text eol=lf
+*.props text eol=lf
+.editorconfig text eol=lf
+
+# PowerShell is left at the platform default: CRLF is conventional and nothing gates it.
+*.ps1 text
+
+# Release artifacts are generated, not edited.
+dist/* binary
+*.png binary
+*.zip binary
