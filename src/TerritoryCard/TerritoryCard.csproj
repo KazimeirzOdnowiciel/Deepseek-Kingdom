@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <Version>0.1.0.0</Version>
+    <Author>KazimeirzOdnowiciel</Author>
+    <Name>Territory Card</Name>
+    <Punchline>Where you are, and what time it is in Eorzea</Punchline>
+    <Description>Shows the name of the territory you are in and the current Eorzea time, with a button that copies the clock. It reads the TerritoryType sheet and derives Eorzea time from your UTC clock, and it writes nothing to the game.</Description>
+    <RepoUrl>https://github.com/KazimeirzOdnowiciel/Deepseek-Kingdom</RepoUrl>
+    <Tags>territory;eorzea time;clock</Tags>
+
+    <!-- Opts this project into warnings-as-errors, code-style enforcement and
+         nullable from Directory.Build.props. Do not remove. -->
+    <StrictConventions>true</StrictConventions>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Lets the previews project draw the internal view classes against a golden image. -->
+    <InternalsVisibleTo Include="TerritoryCard.Previews" />
+  </ItemGroup>
+
+  <!--
+    Glasswork: real refracting glass behind the window and themed widgets in place of ImGui's.
+    MIT, four prerelease packages, API 15. Ships ~900 KB of its own assemblies in the plugin zip.
+
+    The TerraFX Reference is NOT optional and is NOT a package: the glass renderer compiles
+    against the TerraFX.Interop.Windows that Dalamud itself ships. $(DalamudLibPath) is defined
+    by Dalamud.NET.Sdk; Private=false keeps that 28 MB file out of the plugin.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Glasswork" Version="0.1.0-beta.2" />
+    <PackageReference Include="Glasswork.Glass" Version="0.1.0-beta.2" />
+    <PackageReference Include="Glasswork.Backend" Version="0.1.0-beta.2" />
+    <PackageReference Include="Glasswork.Dalamud" Version="0.1.0-beta.2" />
+    <Reference Include="TerraFX.Interop.Windows">
+      <HintPath>$(DalamudLibPath)TerraFX.Interop.Windows.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
