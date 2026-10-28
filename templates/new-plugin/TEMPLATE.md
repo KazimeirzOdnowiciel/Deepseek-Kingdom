@@ -47,8 +47,7 @@ The committed `goldens/main.png` is a render of the template's placeholder text.
 that text, so the golden no longer matches:
 
 ```powershell
-dotnet build src/FooBar.Previews -c Release
-glasswork-preview --assembly "src/FooBar.Previews/bin/Release/FooBar.Previews.dll" --compare "src/FooBar.Previews/goldens" --update --warp
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\render-goldens.ps1 -Name FooBar
 ```
 
 Look at the PNG it writes, then commit it. From then on the golden is yours and the gate checks it.

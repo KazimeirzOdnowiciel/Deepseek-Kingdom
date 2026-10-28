@@ -105,7 +105,7 @@ else {
             Write-Host ""
             Write-Host "Preview mismatch. The red pixels in $out/*.diff.png are what moved."
             Write-Host "If the change was intended, re-render and commit the new goldens:"
-            Write-Host "  glasswork-preview --assembly `"$dll`" --compare `"$goldens`" --update --warp"
+            Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/render-goldens.ps1 -Name $Name"
             Write-Host "Two other causes: the tool is missing (dotnet tool restore), or a Dalamud"
             Write-Host "update shifted cimgui and every pixel moved at once."
         }
