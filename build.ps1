@@ -81,16 +81,26 @@ foreach ($plugin in $plugins)
         $iconUrl = "$BaseUrl/dist/icons/$($manifest.InternalName)-$tag.png"
     }
 
-    # The installed-plugin list reads the manifest inside the zip, not the repo entry, so the icon
-    # has to live in there too or it vanishes the moment the plugin is installed.
+    # The zip is always rewritten once, for two reasons that must not depend on an icon existing:
+    # the installed-plugin list reads the manifest INSIDE the zip, so IconUrl has to be in there or
+    # the icon vanishes once installed; and the plugin ships Glasswork's MIT assemblies inside that
+    # zip, so the notice has to travel with the binaries or the distribution is not licensed.
+    $notices = Join-Path $root "THIRD-PARTY-NOTICES.md"
+    if (-not (Test-Path $notices))
+    {
+        throw "missing THIRD-PARTY-NOTICES.md at the repository root"
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    $staging = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $staging | Out-Null
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($target, $staging)
+
+    Copy-Item $notices (Join-Path $staging "THIRD-PARTY-NOTICES.md") -Force
+
     if ($iconUrl -ne "")
     {
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-        $staging = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
-        New-Item -ItemType Directory -Path $staging | Out-Null
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($target, $staging)
-
         $innerManifest = Join-Path $staging "$($manifest.InternalName).json"
 
         if (Test-Path $innerManifest)
@@ -99,14 +109,15 @@ foreach ($plugin in $plugins)
             $inner | Add-Member -NotePropertyName IconUrl -NotePropertyValue $iconUrl -Force
             $innerJson = ConvertTo-Json -InputObject $inner -Depth 6
             [System.IO.File]::WriteAllText($innerManifest, $innerJson, (New-Object System.Text.UTF8Encoding($false)))
-
-            Remove-Item $target -Force
-            [System.IO.Compression.ZipFile]::CreateFromDirectory(
-                $staging, $target, [System.IO.Compression.CompressionLevel]::Optimal, $false)
         }
-
-        Remove-Item $staging -Recurse -Force
     }
+
+    # Re-zip unconditionally: the notices must be in every package, icon or no icon.
+    Remove-Item $target -Force
+    [System.IO.Compression.ZipFile]::CreateFromDirectory(
+        $staging, $target, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+
+    Remove-Item $staging -Recurse -Force
 
     $entries += [ordered]@{
         Author             = $manifest.Author
@@ -141,8 +152,14 @@ if ($plugins.Count -gt 0 -and $entries.Count -eq 0)
 
 # An empty repository is a valid state: it publishes an empty index rather than failing, so the
 # first plugin does not have to be committed together with the automation.
+#
+# The trailing newline is deliberate: without it every run rewrites nearly the same bytes with a
+# different final byte and marks repo.json modified, which is the artifact churn P2 exists to avoid.
 $json = if ($entries.Count -eq 0) { "[]" } else { ConvertTo-Json -InputObject $entries -Depth 6 }
-[System.IO.File]::WriteAllText((Join-Path $root "repo.json"), $json, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText(
+    (Join-Path $root "repo.json"),
+    $json + "`n",
+    (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host ""
 Write-Host "repo.json written with $($entries.Count) plugin(s), links pointing at $BaseUrl"

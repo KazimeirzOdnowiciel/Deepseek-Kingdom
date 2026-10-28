@@ -211,6 +211,13 @@ manifest from the assembly version, .NET pads that to four parts, and Dalamud re
 when the manifest and `repo.json` disagree (`distributed: 2.1.0.0 repo: 2.1.0`). A three-part
 version does not fail the build; it fails the install.
 
+**P5 — Everything shipped inside a plugin zip is listed in `THIRD-PARTY-NOTICES.md`.** MIT and
+similar licences require the notice to travel with every copy, so `build.ps1` embeds that file in
+each package and refuses to package without it. A dependency that is referenced but not copied —
+Dalamud itself, its ImGui bindings, TerraFX, Lumina — is resolved from the player's installation and
+must not be listed as redistributed. Adding a package that ships DLLs into a plugin means adding an
+entry here in the same commit.
+
 ## Official repository admission (`DalamudPluginsD17`)
 
 The custom repo is unreviewed and not bound by these; the official repo is. Check before promoting
