@@ -85,10 +85,17 @@ foreach ($plugin in $plugins)
     # the installed-plugin list reads the manifest INSIDE the zip, so IconUrl has to be in there or
     # the icon vanishes once installed; and the plugin ships Glasswork's MIT assemblies inside that
     # zip, so the notice has to travel with the binaries or the distribution is not licensed.
-    $notices = Join-Path $root "THIRD-PARTY-NOTICES.md"
-    if (-not (Test-Path $notices))
+    $legal = @(
+        Join-Path $root "LICENSE"
+        Join-Path $root "THIRD-PARTY-NOTICES.md"
+    )
+
+    foreach ($file in $legal)
     {
-        throw "missing THIRD-PARTY-NOTICES.md at the repository root"
+        if (-not (Test-Path $file))
+        {
+            throw "missing $(Split-Path -Leaf $file) at the repository root"
+        }
     }
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -97,7 +104,10 @@ foreach ($plugin in $plugins)
     New-Item -ItemType Directory -Path $staging | Out-Null
     [System.IO.Compression.ZipFile]::ExtractToDirectory($target, $staging)
 
-    Copy-Item $notices (Join-Path $staging "THIRD-PARTY-NOTICES.md") -Force
+    foreach ($file in $legal)
+    {
+        Copy-Item $file (Join-Path $staging (Split-Path -Leaf $file)) -Force
+    }
 
     if ($iconUrl -ne "")
     {

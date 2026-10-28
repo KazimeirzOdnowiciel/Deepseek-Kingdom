@@ -1,9 +1,12 @@
 # Third-party notices
 
-Every plugin this repository publishes ships inside its zip the assemblies listed under
-**Redistributed**. MIT and similar licences require their copyright notice and permission text to
-accompany every copy of the software, so `build.ps1` embeds this file in each package
-(`THIRD-PARTY-NOTICES.md` next to the plugin's own DLLs) and refuses to package without it.
+The plugin code in this repository is MIT licensed — see [`LICENSE`](LICENSE). That licence covers
+our own code; this file covers the third-party components that get bundled *inside* a plugin.
+
+Every plugin published here ships inside its zip the assemblies listed under **Redistributed**. MIT
+and similar licences require their copyright notice and permission text to accompany every copy of
+the software, so `build.ps1` embeds this file **and** `LICENSE` in each package (next to the plugin's
+own DLLs) and refuses to package without them.
 
 **Add an entry here before shipping anything new inside a plugin.** A dependency referenced but not
 copied is not redistributed and does not belong here — see the last section.

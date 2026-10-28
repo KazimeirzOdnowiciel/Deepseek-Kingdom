@@ -110,3 +110,9 @@ re-render. Changing one button label in the view was verified to fail the gate
 (`previews: mismatch`, exit code 1). No plugin is published yet, so `repo.json` is `[]`.
 
 Not verified, and not verifiable here: anything that needs the game running.
+
+## Licence
+
+MIT — see [`LICENSE`](LICENSE). Published packages carry `LICENSE` and
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) inside the zip, because they bundle Glasswork's
+MIT assemblies.

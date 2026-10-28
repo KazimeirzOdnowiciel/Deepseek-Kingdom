@@ -245,3 +245,10 @@ errors and unreadable diffs in this repository before. Edit, and let the diff be
 
 **X4** Add `<TreatWarningsAsErrors>` or `StrictConventions` to a released plugin as a side effect of
 an unrelated change.
+
+## Licence
+
+MIT — see [`LICENSE`](LICENSE). By contributing you agree your contributions are licensed the same
+way. Every published package also carries `LICENSE` and
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) inside its zip, because it bundles Glasswork's MIT
+assemblies and their notice has to travel with them (`P5`).
