@@ -22,7 +22,7 @@ serves until the first plugin is promoted.
 | [`AI-USAGE.md`](AI-USAGE.md) | The declared AI level (Copilot), the five human gates, and the limits. |
 | [`templates/new-plugin/`](templates/new-plugin/TEMPLATE.md) | A compiling plugin, its unit-test project and its preview (golden-image) project, already conforming to the rulebook. |
 | [`scripts/check.ps1`](scripts/check.ps1) | The gate for one plugin: build, tests, format. JSON on the last line. |
-| [`scripts/check-all.ps1`](scripts/check-all.ps1) | The same gate over every plugin in `src/`. What CI runs. |
+| [`scripts/check-all.ps1`](scripts/check-all.ps1) | The same gate over every plugin in `src/` **and the template**. What CI runs. |
 | [`build.ps1`](build.ps1) | Packages every listed plugin into `dist/` and rewrites `repo.json`. |
 | `repo.json`, `dist/` | The published index and the zips it points at. |
 | `icons/` | One `<InternalName>.png` per plugin (see [`icons/README.md`](icons/README.md)). |
@@ -49,7 +49,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-all.ps1
 ```
 
 The first prints `{"plugin":"FooBar","build":true,"tests":"passed","format":"clean","previews":"passed","ok":true}`
-and exits 0 only when all four pass. The second does that for every plugin. Formatting is enforced by
+and exits 0 only when all four pass. The second does that for every plugin **and for the template**,
+so a broken scaffold cannot land without something having built it. Formatting is enforced by
 `dotnet format`, so never argue style in review — and always scope it to one project, or it will
 reformat everything in the tree.
 

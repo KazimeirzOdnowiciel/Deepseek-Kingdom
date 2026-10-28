@@ -1,10 +1,18 @@
 name: Gate
 
-# The deterministic gate on every pull request: build, unit tests, format. No artifacts are
-# produced here - release.yml does that on main.
+# The deterministic gate on every pull request, and on main for the changes release.yml does not
+# watch. release.yml only runs when src/, icons/ or build.ps1 change, so without this a broken
+# scripts/check.ps1 or a broken template would land with nothing having executed it.
 
 on:
   pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**"
+      - "templates/**"
+      - "dotnet-tools.json"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 jobs:

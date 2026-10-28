@@ -10,16 +10,20 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $Name,
 
+    # Where the plugin's three projects live, relative to the repository root. The template is laid
+    # out exactly like a plugin, so the same gate verifies it with -Base templates/new-plugin.
+    [string] $Base = 'src',
+
     [switch] $SkipFormat,
     [switch] $SkipPreviews
 )
 
 $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $PSScriptRoot
-$plugin = Join-Path $root "src/$Name/$Name.csproj"
-$tests = Join-Path $root "src/$Name.Tests/$Name.Tests.csproj"
-$previews = Join-Path $root "src/$Name.Previews/$Name.Previews.csproj"
-$goldens = Join-Path $root "src/$Name.Previews/goldens"
+$plugin = Join-Path $root "$Base/$Name/$Name.csproj"
+$tests = Join-Path $root "$Base/$Name.Tests/$Name.Tests.csproj"
+$previews = Join-Path $root "$Base/$Name.Previews/$Name.Previews.csproj"
+$goldens = Join-Path $root "$Base/$Name.Previews/goldens"
 
 if (-not (Test-Path $plugin)) {
     Write-Host "no plugin project at $plugin"
@@ -79,7 +83,7 @@ else {
     & dotnet build $previews -c Release -v q --nologo
     if ($LASTEXITCODE -ne 0) { $built = $false }
 
-    $dll = Join-Path $root "src/$Name.Previews/bin/Release/$Name.Previews.dll"
+    $dll = Join-Path $root "$Base/$Name.Previews/bin/Release/$Name.Previews.dll"
     if (-not (Test-Path $dll)) { $built = $false }
 
     if (-not $built) {
