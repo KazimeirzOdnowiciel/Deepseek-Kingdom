@@ -8,7 +8,7 @@
     <Description>What the plugin does, in two or three sentences.
 
 Second paragraph for the details a user needs before installing: what it reads, what it changes, and whether it does anything on your behalf.</Description>
-    <RepoUrl>https://github.com/KazimeirzOdnowiciel/ffxiv-plugins</RepoUrl>
+    <RepoUrl>https://github.com/KazimeirzOdnowiciel/Deepseek-Kingdom</RepoUrl>
     <Tags>one;two;three</Tags>
 
     <!-- Opts this project into warnings-as-errors, code-style enforcement and

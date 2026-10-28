@@ -1,9 +1,9 @@
 # Contributing
 
-This repository builds Final Fantasy XIV Dalamud plugins: the rulebook, the template, the
-deterministic gate, and the sources of plugins in progress. What it does not do is ship them -
-players install from the distributor repository. A bug reaching a player means a broken UI mid-duty,
-so correctness and not crashing the client outrank elegance, novelty, and clever abstractions.
+This repository builds and ships Final Fantasy XIV Dalamud plugins: the rulebook, the template, the
+deterministic gate, and the sources. What ships here reaches players through this repository's own
+custom repository (`repo.json`), so a bug means a broken UI mid-duty - correctness and not crashing
+the client outrank elegance, novelty, and clever abstractions.
 
 Rules carry stable ids (`N3`, `A2`, `T1`, …). **Review findings must cite the id** — reviewers are
 not allowed to file opinions, only rule violations or defects.
@@ -13,7 +13,7 @@ not allowed to file opinions, only rule violations or defects.
 | | Status |
 | --- | --- |
 | **New plugins** | Built from `templates/new-plugin/` under the full strict gate below. |
-| **The nine released plugins** | `SlotYield`, `RouletteBingo`, `CritSound`, `EnemyListCastBars`, `DesynthLens`, `MechanicWatch`, `GilLedger`, `DutyRecap`, `CrashTrace`. They live in the distributor repository, not here. Pre-existing; exempt from the strict gate until each is migrated deliberately. Do not retrofit them as a drive-by change. |
+| **The nine earlier plugins** | `SlotYield`, `RouletteBingo`, `CritSound`, `EnemyListCastBars`, `DesynthLens`, `MechanicWatch`, `GilLedger`, `DutyRecap`, `CrashTrace`. They live in an earlier repository and are **out of scope here**; exempt from the strict gate until each is migrated deliberately. Do not retrofit them as a drive-by change. |
 
 ## Two kinds of rules — do not confuse them
 
@@ -171,11 +171,11 @@ finding and is not a review.
 
 ## Publishing
 
-**Publication does not happen in this repository.** This repository is the workshop: the rulebook,
-the template, the gate, and the sources of plugins being built. Shipping runs through the distributor
-repository (`ffxiv-plugins`, which owns `build.ps1`, `repo.json`, `dist/` and `icons/`) or through a
-repository of the plugin's own. Either way, promotion is the manual act below, never a side effect of
-a push here.
+**Publication happens in this repository.** `build.ps1` builds every listed plugin, copies each zip
+into `dist/`, and regenerates `repo.json` with version-pinned links under
+`https://raw.githubusercontent.com/KazimeirzOdnowiciel/Deepseek-Kingdom/main`.
+`.github/workflows/release.yml` runs the gate first, then `build.ps1`, then commits `dist/` and
+`repo.json` only when a version actually changed.
 
 **P1 — A plugin ships only when it is listed in the `$plugins` array in `build.ps1`.** Being in
 `src/` does not publish it. Promotion is: add the entry, drop `icons/<InternalName>.png`, bump

@@ -1,0 +1,39 @@
+name: Gate
+
+# The deterministic gate on every pull request: build, unit tests, format. No artifacts are
+# produced here - release.yml does that on main.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Provide Dalamud assemblies
+        shell: pwsh
+        run: |
+          # Dalamud.NET.Sdk resolves Dalamud.dll from DALAMUD_HOME (or a local install).
+          # A fresh runner has neither, so unpack the public build.
+          $zip = Join-Path $env:RUNNER_TEMP "dalamud.zip"
+          $dest = Join-Path $env:RUNNER_TEMP "dalamud"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Invoke-WebRequest -Uri "https://goatcorp.github.io/dalamud-distrib/latest.zip" -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $dest -Force
+          if (-not (Test-Path (Join-Path $dest "Dalamud.dll"))) {
+            throw "Dalamud.dll missing after unpacking the distribution"
+          }
+          "DALAMUD_HOME=$dest" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+
+      - name: Gate every plugin
+        shell: pwsh
+        run: ./scripts/check-all.ps1
