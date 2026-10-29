@@ -12,6 +12,9 @@ public sealed class ConfigWindow : Window, IDisposable
 
     private readonly Plugin plugin;
 
+    /// <summary>Set once a draw has failed, so the failure is logged on the transition (N4).</summary>
+    private bool loggedDrawFailure;
+
     public ConfigWindow(Plugin plugin)
         : base("Plugin Name Settings###PluginNameConfig", ImGuiWindowFlags.NoBackground)
     {
@@ -45,10 +48,21 @@ public sealed class ConfigWindow : Window, IDisposable
         try
         {
             DrawBody();
+
+            if (loggedDrawFailure)
+            {
+                Plugin.Log.Debug("ConfigWindow.Draw recovered.");
+                loggedDrawFailure = false;
+            }
         }
         catch (Exception ex)
         {
-            Plugin.Log.Error(ex, "ConfigWindow.Draw failed.");
+            // Same reason as MainWindow: a per-frame catch, so log on the transition only (N4).
+            if (!loggedDrawFailure)
+            {
+                Plugin.Log.Error(ex, "ConfigWindow.Draw failed.");
+                loggedDrawFailure = true;
+            }
         }
     }
 

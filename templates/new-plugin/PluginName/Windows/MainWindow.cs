@@ -18,6 +18,9 @@ public sealed class MainWindow : Window, IDisposable
     private readonly MainViewState state = new();
     private readonly string configPath;
 
+    /// <summary>Set once a draw has failed, so the failure is logged on the transition (N4).</summary>
+    private bool loggedDrawFailure;
+
     /// <summary>
     /// <c>NoBackground</c> stops ImGui painting its own fill: the glass is the background.
     /// The <c>###</c> suffix is the stable ImGui id, so renaming the visible title never
@@ -77,10 +80,23 @@ public sealed class MainWindow : Window, IDisposable
         try
         {
             DrawBody();
+
+            if (loggedDrawFailure)
+            {
+                Plugin.Log.Debug("MainWindow.Draw recovered.");
+                loggedDrawFailure = false;
+            }
         }
         catch (Exception ex)
         {
-            Plugin.Log.Error(ex, "MainWindow.Draw failed.");
+            // While a failure persists this runs every frame, and the catch also swallows the
+            // exception, so Plugin.OnDraw's transition guard never sees it. The flag has to live
+            // here or this is a 60 Hz Error stream (N4).
+            if (!loggedDrawFailure)
+            {
+                Plugin.Log.Error(ex, "MainWindow.Draw failed.");
+                loggedDrawFailure = true;
+            }
         }
     }
 
