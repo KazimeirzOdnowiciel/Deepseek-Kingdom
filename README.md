@@ -31,6 +31,10 @@ serves until the first plugin is promoted.
 
 ## In the workshop
 
+**These are test plugins.** They exist to exercise the pipeline end to end — the template, the
+three-way split, the golden gate, the review — not because either is a product. They are not
+published, and either can be deleted or rewritten without notice.
+
 Two plugins are built here, and **neither is published**: being in `src/` does not list a plugin, and
 nothing is promoted before it has run in the game (`P1`).
 
@@ -131,6 +135,8 @@ the golden, but "the button moved onto the label" will.
 
 ## Status
 
+- **This repository's own plugins are test plugins.** They are unpublished experiments that exist to
+  prove the pipeline works; nothing here is offered as a product.
 - **Template** — builds with 0 warnings under `TreatWarningsAsErrors`, 6 unit tests pass, `dotnet format` is clean and its golden compares byte-identical. It is gated in CI alongside the plugins, so a broken scaffold cannot land unnoticed. Changing one button label was verified to fail the gate (`previews: mismatch`, exit 1).
 - **Gate** — `check.ps1` covers compile, tests, format and the UI golden. `check-all.ps1` runs it over every plugin **and** the template, and CI runs on changes to `src/`, `scripts/`, `templates/`, `dotnet-tools.json` and `build.ps1`.
 - **Published** — nothing. `repo.json` is `[]`, `dist/` is empty, and neither plugin is in `build.ps1`'s `$plugins` list.

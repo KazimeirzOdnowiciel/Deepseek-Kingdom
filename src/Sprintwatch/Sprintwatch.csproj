@@ -5,11 +5,13 @@
     <Author>KazimeirzOdnowiciel</Author>
     <Name>Sprint Watch</Name>
     <Punchline>A sprint timer with lap splits for practising routes</Punchline>
-    <Description>A stopwatch for practising routes and sprint timings. Start, pause, lap and reset from /sprintwatch or from the window, and read each lap's split, running total and local wall-clock stamp.
+    <Description>A test plugin: it exists to exercise the pipeline in this repository, not to be published.
+
+A stopwatch for practising routes and sprint timings. Start, pause, lap and reset from /sprintwatch or from the window, and read each lap's split, running total and local wall-clock stamp.
 
 Nothing about your run is stored: the timer lives in memory, and the only file written is the plugin's own config with your window and clock preferences.</Description>
     <RepoUrl>https://github.com/KazimeirzOdnowiciel/Deepseek-Kingdom</RepoUrl>
-    <Tags>timer;stopwatch;sprint;laps</Tags>
+    <Tags>test-plugin;timer;stopwatch;sprint;laps</Tags>
 
     <!-- Opts this project into warnings-as-errors, code-style enforcement and
          nullable from Directory.Build.props. Do not remove. -->

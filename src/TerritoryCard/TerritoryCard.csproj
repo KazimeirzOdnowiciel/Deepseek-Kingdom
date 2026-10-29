@@ -5,9 +5,11 @@
     <Author>KazimeirzOdnowiciel</Author>
     <Name>Territory Card</Name>
     <Punchline>Where you are, and what time it is in Eorzea</Punchline>
-    <Description>Shows the name of the territory you are in and the current Eorzea time, with a button that copies the clock. It reads the TerritoryType sheet and derives Eorzea time from your UTC clock, and it writes nothing to the game.</Description>
+    <Description>A test plugin: it exists to exercise the pipeline in this repository, not to be published.
+
+Shows the name of the territory you are in and the current Eorzea time, with a button that copies the clock. It reads the TerritoryType sheet and derives Eorzea time from your UTC clock, and it writes nothing to the game.</Description>
     <RepoUrl>https://github.com/KazimeirzOdnowiciel/Deepseek-Kingdom</RepoUrl>
-    <Tags>territory;eorzea time;clock</Tags>
+    <Tags>test-plugin;territory;eorzea time;clock</Tags>
 
     <!-- Opts this project into warnings-as-errors, code-style enforcement and
          nullable from Directory.Build.props. Do not remove. -->
