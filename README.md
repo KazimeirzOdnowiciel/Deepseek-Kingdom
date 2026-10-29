@@ -29,6 +29,32 @@ serves until the first plugin is promoted.
 | `.github/workflows/` | `ci.yml` gates pull requests; `release.yml` gates, packages and commits artifacts on a version bump. |
 | `.editorconfig`, `Directory.Build.props` | The machine half of the rulebook: formatting, nullable, analyzers, warnings-as-errors. |
 
+## In the workshop
+
+Two plugins are built here, and **neither is published**: being in `src/` does not list a plugin, and
+nothing is promoted before it has run in the game (`P1`).
+
+| Plugin | What it does | State |
+| --- | --- | --- |
+| [`src/TerritoryCard/`](src/TerritoryCard/Plugin.cs) | A card showing the current territory and the local Eorzea time, with a Copy ET button. | Gate green, 41 tests, **verified in game**: loads, the glass refracts, the zone resolves, `0` error lines, clean `/xldev` reload. |
+| [`src/Sprintwatch/`](src/Sprintwatch/Plugin.cs) | A session stopwatch with Start/Stop/Lap/Reset, a lap table and 12/24-hour lap clocks. | Gate green, 26 tests. Not yet run in the game. |
+
+Both were produced by the pipeline this repository exists for, which is the point of them.
+
+## How a plugin gets built here
+
+One lead and three implementers. The lead writes the spec, splits the work into three disjoint file
+sets with a contract between them, scaffolds from the template, then integrates, reviews its own diff
+and runs the gate. The three own `Services/` (pure, Dalamud-free logic), `Views/` (drawing plus the
+headless preview screen) and the wiring (`Plugin.cs`, `Configuration.cs`, projects, tests).
+
+They never build at the same time — one shared `obj/` — and the lead builds once at integration. Two
+seams only the lead can see have already been found this way: a public `[Theory]` cannot take an
+`internal` enum parameter, and a part's tests can call an overload that does not exist.
+
+The shape is written down in the `dalamud-new-plugin` skill; `references/pipeline.js` is the same
+shape as a script, for runs that must happen unattended.
+
 ## Start a plugin
 
 ```powershell
@@ -105,12 +131,13 @@ the golden, but "the button moved onto the label" will.
 
 ## Status
 
-The template builds with **0 warnings** under `TreatWarningsAsErrors`, its **6 unit tests pass**,
-`dotnet format --verify-no-changes` is clean, and its golden image compares byte-identical on
-re-render. Changing one button label in the view was verified to fail the gate
-(`previews: mismatch`, exit code 1). No plugin is published yet, so `repo.json` is `[]`.
+- **Template** — builds with 0 warnings under `TreatWarningsAsErrors`, 6 unit tests pass, `dotnet format` is clean and its golden compares byte-identical. It is gated in CI alongside the plugins, so a broken scaffold cannot land unnoticed. Changing one button label was verified to fail the gate (`previews: mismatch`, exit 1).
+- **Gate** — `check.ps1` covers compile, tests, format and the UI golden. `check-all.ps1` runs it over every plugin **and** the template, and CI runs on changes to `src/`, `scripts/`, `templates/`, `dotnet-tools.json` and `build.ps1`.
+- **Published** — nothing. `repo.json` is `[]`, `dist/` is empty, and neither plugin is in `build.ps1`'s `$plugins` list.
+- **In the game** — TerritoryCard has run in the client; Sprintwatch has not.
 
-Not verified, and not verifiable here: anything that needs the game running.
+Not verified, and not verifiable here: anything else that needs the game running — whether a control
+does what its label says under real load, and whether behaviour holds through a duty or a cutscene.
 
 ## Licence
 

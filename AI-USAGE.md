@@ -30,14 +30,23 @@ the repository depends on it.
 - **Scaffolded from a template.** `templates/new-plugin/` is the only starting point for a new
   plugin. It compiles, passes its unit tests and passes the format gate on day zero, so a task never
   begins by re-deciding project layout.
-- **Implemented with agents, reviewed by agents that did not write the code.** Reviewers read the
-  diff back against `CONTRIBUTING.md` and `.editorconfig` through separate lenses (suite
-  conventions, API correctness, client safety, official-repo admission) and their findings go back
-  before anything lands.
-- **Verified by machines, then by a human in game.** `scripts/check.ps1` settles build, unit tests
-  and formatting. It settles nothing about behaviour.
+- **Implemented by three agents, integrated and reviewed by a fourth.** One
+  lead writes the spec, splits the work into three disjoint file sets with a contract between them,
+  and scaffolds from the template. Three implementers then write their own part in parallel — pure
+  logic, the view, the wiring — and the lead integrates what they produced, reviews its own diff
+  through the four lenses (suite conventions, API correctness, client safety, official-repo
+  admission) and runs the gate.
 
-The orchestration lives in the `dalamud-new-plugin` skill (`references/pipeline.js`).
+  **The lead reviews its own work, and that is a real reduction in independence.** Independent
+  reviewers are what found the two defects this template has had so far (a config write inside the
+  draw pass, and per-frame `Error` logging in the window catches). For a plugin that will be
+  published rather than tried, add a read-only review of the diff by an agent that wrote none of it.
+- **Verified by machines, then by a human in game.** `scripts/check.ps1` settles build, unit tests
+  and formatting, and the UI golden settles layout. It settles nothing about behaviour.
+
+The shape is written down in the `dalamud-new-plugin` skill; `references/pipeline.js` is the same
+shape as a script, for runs that must happen unattended. The `.editorconfig` and the golden are
+enforced by tools, not by an agent's opinion.
 
 ## The human gates, none skippable
 
