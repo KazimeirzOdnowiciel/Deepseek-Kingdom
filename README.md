@@ -21,11 +21,13 @@ serves until the first plugin is promoted.
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | The rulebook. Every rule has an id (`N4`, `A2`, `T1`, `P4`) so a review finding cites one instead of paraphrasing. |
 | [`AI-USAGE.md`](AI-USAGE.md) | The declared AI level (Copilot), the five human gates, and the limits. |
 | [`templates/new-plugin/`](templates/new-plugin/TEMPLATE.md) | A compiling plugin, its unit-test project and its preview (golden-image) project, already conforming to the rulebook. |
+| [`scripts/new-plugin.ps1`](scripts/new-plugin.ps1) | Starts a plugin from the template in one command: three projects, every token renamed, the golden re-rendered, the gate run. |
 | [`scripts/check.ps1`](scripts/check.ps1) | The gate for one plugin: build, tests, format. JSON on the last line. |
 | [`scripts/check-all.ps1`](scripts/check-all.ps1) | The same gate over every plugin in `src/` **and the template**. What CI runs. |
 | [`build.ps1`](build.ps1) | Packages every listed plugin into `dist/` and rewrites `repo.json`. |
 | `repo.json`, `dist/` | The published index and the zips it points at. |
 | `icons/` | One `<InternalName>.png` per plugin (see [`icons/README.md`](icons/README.md)). |
+| `docs/screenshots/` | Screenshots of the plugin windows, rendered from the golden images so they cannot drift from the code. |
 | `.github/workflows/` | `ci.yml` gates pull requests; `release.yml` gates, packages and commits artifacts on a version bump. |
 | `.editorconfig`, `Directory.Build.props` | The machine half of the rulebook: formatting, nullable, analyzers, warnings-as-errors. |
 
@@ -35,15 +37,54 @@ serves until the first plugin is promoted.
 three-way split, the golden gate, the review — not because either is a product. They are not
 published, and either can be deleted or rewritten without notice.
 
-Two plugins are built here, and **neither is published**: being in `src/` does not list a plugin, and
+Three plugins are built here, and **none is published**: being in `src/` does not list a plugin, and
 nothing is promoted before it has run in the game (`P1`).
 
 | Plugin | What it does | State |
 | --- | --- | --- |
+| [`src/Mountbook/`](src/Mountbook/Plugin.cs) | A collection book for every mount in the game: card grid or dense sortable table, search with operators, order (name, patch, seats, rarity, market price, "surprise me"), group by expansion/patch/source, a wanted list with JSON export and import, and a detail pane with the game's artwork, community rarity, token prices with your own progress, market prices on demand, and a "How to obtain" list whose rows open the wiki. | Gate green with **ten goldens**; the in-game checks are listed in the [Mountbook section](#mountbook) below. |
 | [`src/TerritoryCard/`](src/TerritoryCard/Plugin.cs) | A card showing the current territory and the local Eorzea time, with a Copy ET button. | Gate green, 41 tests, **verified in game**: loads, the glass refracts, the zone resolves, `0` error lines, clean `/xldev` reload. |
 | [`src/Sprintwatch/`](src/Sprintwatch/Plugin.cs) | A session stopwatch with Start/Stop/Lap/Reset, a lap table and 12/24-hour lap clocks. | Gate green, 26 tests. Not yet run in the game. |
 
-Both were produced by the pipeline this repository exists for, which is the point of them.
+All three were produced by the pipeline this repository exists for, which is the point of them.
+
+## Mountbook
+
+A collection book for all 369 mounts, built to answer one question: *what do I still need, and what does it
+take to get it?*
+
+| | |
+| --- | --- |
+| ![Card grid](docs/screenshots/main.png) | ![Dense table](docs/screenshots/table.png) |
+| Cards with the artwork, wanted and new markers, and a detail pane. | The same list as a sortable table with a market price column. |
+| ![Grouped by expansion](docs/screenshots/grouped.png) | ![How to obtain](docs/screenshots/sources.png) |
+| Grouped by expansion, patch or acquire method. | "How to obtain", a token price with your progress, and rows that open the wiki. |
+
+What it does, in the order a player meets it:
+
+- **Find it.** Search names, lore, tooltips and source text, plus operators (`tradeable:y`, `music:n`,
+  `barding:y`, `flying:y`, `seats:>=2`, `patch:>=6.1`, `owned:<1`). Ownership chips show their counts;
+  the source and expansion filters narrow the same list.
+- **Read it.** Cards or a dense table; order by name, patch, seats, rarity or market price, or "surprise
+  me" for a seeded shuffle. Group by expansion, patch or acquire method.
+- **Get it.** The detail pane carries the game's artwork, flavour text, community rarity ("owned by 0.4%
+  of collectors"), the whistle's name, a token price with the player's own count, the cheapest listing on
+  their data center when they ask for it, and a "How to obtain" list where each row that names a duty,
+  quest or achievement opens its page.
+- **Track it.** A wanted list that exports and imports as JSON, a "New" marker for what the collection
+  gained in the last two weeks, per-expansion progress, and `/mountbook recent`, `/mountbook missing`,
+  `/mountbook wanted` in chat.
+
+**What is verified where.** Unit tests and goldens cover the pure logic and every screen; the in-game runs
+cover loading, the catalog (369 mounts, 136 collected), Ride, Link whistle, Mount Guide, copy-missing, the
+filters and chips, the table, `tradeable:` / `barding:` / `flying:` searches, wanted-list import and copy,
+market prices ("73 prices read across 5 request(s)", cheapest first), token progress ("12,000 Seafarer's
+Cowries - you have 0, 12,000 to go") and a source row opening its wiki page. The rest is marked as
+unverified in `STATE.md` rather than claimed here.
+
+**What it touches.** It reads the `Mount`, `MountTransient` and `Item` sheets and your unlocked-mount
+state; it writes nothing to the game. Its one network call is the market price you ask for (Universalis,
+for your data center), and the data it ships with is a snapshot of ffxivcollect's obtain data.
 
 ## How a plugin gets built here
 
@@ -62,14 +103,15 @@ shape as a script, for runs that must happen unattended.
 ## Start a plugin
 
 ```powershell
-$Name = 'FooBar'
-Copy-Item -Recurse templates/new-plugin/PluginName      "src/$Name"
-Copy-Item -Recurse templates/new-plugin/PluginName.Tests "src/$Name.Tests"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\new-plugin.ps1 -Name FooBar
 ```
 
-Then rename every token in the table in [`templates/new-plugin/TEMPLATE.md`](templates/new-plugin/TEMPLATE.md).
-The name becomes the **InternalName** (config folder, log tag, plugin identity), so pick it once and
-never change it after release.
+One command: it copies the three projects, renames every token the template carries, re-renders the
+golden and runs the gate, printing
+`{"plugin":"FooBar","golden":"rendered","gate":"passed","ok":true}`. The name becomes the
+**InternalName** (config folder, log tag, plugin identity), so pick it once and never change it after
+release; the script rejects anything that is not a C# identifier. What it does not do: touch
+`build.ps1` and commit — publishing stays a deliberate step.
 
 ## Check it
 
@@ -140,7 +182,7 @@ the golden, but "the button moved onto the label" will.
 - **Template** — builds with 0 warnings under `TreatWarningsAsErrors`, 6 unit tests pass, `dotnet format` is clean and its golden compares byte-identical. It is gated in CI alongside the plugins, so a broken scaffold cannot land unnoticed. Changing one button label was verified to fail the gate (`previews: mismatch`, exit 1).
 - **Gate** — `check.ps1` covers compile, tests, format and the UI golden. `check-all.ps1` runs it over every plugin **and** the template, and CI runs on changes to `src/`, `scripts/`, `templates/`, `dotnet-tools.json` and `build.ps1`.
 - **Published** — nothing. `repo.json` is `[]`, `dist/` is empty, and neither plugin is in `build.ps1`'s `$plugins` list.
-- **In the game** — TerritoryCard has run in the client; Sprintwatch has not.
+- **In the game** — TerritoryCard and Mountbook have run in the client; Sprintwatch has not. Mountbook's seven screens (main, empty, narrow, wanted, config, minimum, locked) are compared as goldens; every screen beyond `main` has already caught a regression the wide screen could not see (a title past the pane, a clipped action button, a wrapped combo cap, an overflowing path, and a disabled button breaking its row).
 
 Not verified, and not verifiable here: anything else that needs the game running — whether a control
 does what its label says under real load, and whether behaviour holds through a duty or a cutscene.
